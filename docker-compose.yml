@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  broker:
+    image: apache/kafka:latest
+    container_name: broker
+    ports:
+      - "9092:9092"     # Kafka broker
+      - "7071:7071"     # JMX exporter port
+    environment:
+      KAFKA_KRAFT_MODE: "true"
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_NODE_ID: "1"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@broker:9093"
+      KAFKA_LISTENERS: PLAINTEXT://broker:9092,CONTROLLER://broker:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+      KAFKA_JMX_HOSTNAME: broker
+      KAFKA_OPTS: >
+        -javaagent:/opt/jmx/jmx_prometheus_javaagent-0.20.0.jar=7071:/opt/jmx/kafka-2_0_0.yml
+    volumes:
+      - ./jmx:/opt/jmx
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics.sh --bootstrap-server broker:9092 --list || exit 1"]
+      interval: 10s
+      retries: 10
+      start_period: 30s
+    networks:
+      - newproj_default
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - newproj_default
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    networks:
+      - newproj_default
+
+  producer:
+    build: ./producer
+    depends_on:
+      broker:
+        condition: service_healthy
+    networks:
+      - newproj_default
+    command: ["python", "producer.py"]
+
+
+networks:
+  newproj_default:
+    driver: bridge
+
+  

@@ -28,8 +28,8 @@ Follow these steps to get the project up and running on your local machine.
 
 1.  **Clone the repository:**
     ```bash
-    git clone <repository-url>
-    cd <repository-folder>/newProj
+    git clone https://github.com/shivankurchavan/AirPulse
+    cd Airpulse
     ```
 
 2.  **Start all services:**
